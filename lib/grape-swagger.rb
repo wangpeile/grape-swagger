@@ -11,9 +11,21 @@ module Grape
         documentation_class.setup({:target_class => self}.merge(options))
         mount(documentation_class)
 
+        resource_prefix = options[:resource_prefix]
         @combined_routes = {}
         routes.each do |route|
-          resource = route.route_path.match('\/(\w*?)[\.\/\(]').captures.first
+          route_path = route.route_path
+          resource = nil
+          if resource_prefix && route_path.start_with?(resource_prefix)
+              resource_prefix = "/" + resource_prefix unless resource_prefix.start_with?("/")
+              resource_prefix += "/" unless resource_prefix.end_with?("/")
+              resource = route_path.match("#{resource_prefix}(\\w*)").captures.first
+          end
+
+          unless resource
+              resource = route_path.match('\/(\w*?)[\.\/\(]').captures.first
+          end
+          
           next if resource.empty?
           resource.downcase!
           @combined_routes[resource] ||= []
